@@ -1,40 +1,40 @@
-const { Client } = require('whatsapp-web.js');  // Remover o LocalAuth para não reutilizar a sessão
+const { Client } = require('whatsapp-web.js'); 
 const qrcode = require('qrcode');
 const express = require('express');
 const app = express();
 
-// Defina a porta para o servidor (usando variável de ambiente PORT ou 10000 como fallback)
-const PORT = process.env.PORT || 8080;  // Alterei a porta para 8080, caso necessário
+// Definir a porta correta para rodar no Render
+const PORT = process.env.PORT || 10000;
 
-// Defina a sessão para autenticação (não persistente)
+// Criar o cliente WhatsApp com as configurações para servidores
 const client = new Client({
     puppeteer: { 
-        headless: true,  // Alterado para true para rodar em modo headless
+        headless: true,  
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox',
-            '--disable-gpu',  // Desabilitar GPU para evitar problemas em servidores sem interface gráfica
+            '--disable-gpu',  
             '--disable-software-rasterizer',
-            '--remote-debugging-port=9222'  // Porta de depuração remota
+            '--remote-debugging-port=9222' 
         ] 
     }
 });
 
-// Variável para armazenar o QR Code
+// Variável global para armazenar o QR Code
 let qrCodeData = '';
 
-// Serviço de leitura do QR Code
+// Evento para capturar e armazenar o QR Code
 client.on('qr', qr => {
     console.log('QR RECEIVED', qr);
-    qrCodeData = qr; // Armazenar o QR Code para exibição
+    qrCodeData = qr; // Atualiza o QR Code para exibição na web
 });
 
-// Confirmação de conexão
+// Evento de conexão bem-sucedida
 client.on('ready', () => {
-    console.log('Tudo certo! WhatsApp conectado.');
+    console.log('✅ WhatsApp conectado com sucesso!');
 });
 
-// Funil de vendas para "Tem pudim, sim!"
+// Evento de recebimento de mensagens e automação
 client.on('message', async msg => {
     if (msg.body.match(/(Teste|teste)/i) && msg.from.endsWith('@c.us')) {
         const chat = await msg.getChat();
@@ -79,25 +79,23 @@ client.on('message', async msg => {
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 // Rota para exibir o QR Code na web
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
     if (qrCodeData) {
-        // Gerar o QR Code em base64 e exibir na página
-        qrcode.toDataURL(qrCodeData, (err, url) => {
-            if (err) {
-                res.send('Erro ao gerar o QR Code.');
-            } else {
-                res.send(`<h1>Escaneie o QR Code abaixo para conectar ao WhatsApp:</h1><img src="${url}" />`);
-            }
-        });
+        try {
+            const qrImage = await qrcode.toDataURL(qrCodeData);
+            res.send(`<h1>Escaneie o QR Code abaixo para conectar ao WhatsApp:</h1><img src="${qrImage}" />`);
+        } catch (err) {
+            res.send('<h1>Erro ao gerar o QR Code.</h1>');
+        }
     } else {
         res.send('<h1>Aguardando QR Code...</h1>');
     }
 });
 
-// Iniciar cliente do WhatsApp
+// Inicializar o cliente do WhatsApp
 client.initialize();
 
-// Iniciar o servidor na porta definida
+// Iniciar o servidor Express
 app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`🚀 Servidor rodando no Render na porta ${PORT}`);
 });
