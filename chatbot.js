@@ -9,8 +9,14 @@ const PORT = process.env.PORT || 8080;  // Alterei a porta para 8080, caso neces
 // Defina a sessão para autenticação (não persistente)
 const client = new Client({
     puppeteer: { 
-        headless: false,  // Alterado para false para visualizar o navegador
-        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+        headless: true,  // Alterado para true para rodar em modo headless
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-gpu',  // Desabilitar GPU para evitar problemas em servidores sem interface gráfica
+            '--disable-software-rasterizer',
+            '--remote-debugging-port=9222'  // Porta de depuração remota
+        ] 
     }
 });
 
