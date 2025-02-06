@@ -25,7 +25,7 @@ let qrCodeData = '';
 
 // Evento para capturar e armazenar o QR Code
 client.on('qr', qr => {
-    console.log('QR RECEIVED', qr);
+    console.log('QR RECEBIDO:', qr); // Log para verificar o QR Code recebido
     qrCodeData = qr; // Atualiza o QR Code para exibição na web
 });
 
@@ -34,8 +34,19 @@ client.on('ready', () => {
     console.log('✅ WhatsApp conectado com sucesso!');
 });
 
+// Evento de erro
+client.on('auth_failure', (message) => {
+    console.error('❌ Falha na autenticação:', message);
+});
+
+client.on('disconnected', (reason) => {
+    console.log('❌ WhatsApp desconectado:', reason);
+});
+
 // Evento de recebimento de mensagens e automação
 client.on('message', async msg => {
+    console.log('Mensagem recebida:', msg.body); // Log da mensagem recebida
+
     if (msg.body.match(/(Teste|teste)/i) && msg.from.endsWith('@c.us')) {
         const chat = await msg.getChat();
         const contact = await msg.getContact();
@@ -93,7 +104,11 @@ app.get('/', async (req, res) => {
 });
 
 // Inicializar o cliente do WhatsApp
-client.initialize();
+client.initialize().then(() => {
+    console.log('📡 Inicialização do cliente WhatsApp concluída!');
+}).catch((error) => {
+    console.error('❌ Erro ao inicializar cliente WhatsApp:', error);
+});
 
 // Iniciar o servidor Express
 app.listen(PORT, () => {
