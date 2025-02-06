@@ -1,30 +1,55 @@
-// Leitor de QR Code
-const qrcode = require('qrcode-terminal');
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client } = require('whatsapp-web.js');  
+const qrcode = require('qrcode');
 const express = require('express');
 const app = express();
 
-// Defina a porta para o servidor (usando variável de ambiente PORT ou 10000 como fallback)
+// Defina a porta para o servidor (usando variável de ambiente PORT ou 10000 como padrão)
 const PORT = process.env.PORT || 10000;
 
-// Defina a sessão para autenticação local
+// Criar cliente do WhatsApp
 const client = new Client({
-    authStrategy: new LocalAuth(),
     puppeteer: { 
-        headless: true,  // Pode alterar para false se necessário
+        headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'] 
     }
 });
 
-// Serviço de leitura do QR Code
+// Variável global para armazenar o QR Code
+let qrCodeData = '';
+
+// Captura e armazena o QR Code assim que ele é gerado
 client.on('qr', qr => {
-    qrcode.generate(qr, { small: true });
+    console.log('QR RECEIVED');
+    qrCodeData = qr;
 });
 
-// Confirmação de conexão
+// Confirma conexão
 client.on('ready', () => {
-    console.log('Tudo certo! WhatsApp conectado.');
+    console.log('WhatsApp conectado!');
 });
+
+// Middleware para permitir requisições de qualquer lugar (evita problemas de CORS)
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    next();
+});
+
+// Rota para exibir o QR Code
+app.get('/', async (req, res) => {
+    if (qrCodeData) {
+        try {
+            const qrImage = await qrcode.toDataURL(qrCodeData);
+            res.send(`<h1>Escaneie o QR Code abaixo para conectar ao WhatsApp:</h1><img src="${qrImage}" />`);
+        } catch (err) {
+            res.send('<h1>Erro ao gerar o QR Code.</h1>');
+        }
+    } else {
+        res.send('<h1>Aguardando QR Code...</h1>');
+    }
+});
+
+// Função de delay para simular pausa entre respostas
+const delay = ms => new Promise(res => setTimeout(res, ms));
 
 // Funil de vendas para "Tem pudim, sim!"
 client.on('message', async msg => {
@@ -67,18 +92,11 @@ client.on('message', async msg => {
     }
 });
 
-// Função de delay para simular pausa entre respostas
-const delay = ms => new Promise(res => setTimeout(res, ms));
-
-// Iniciar cliente do WhatsApp
-client.initialize();
-
-// Rota para verificar se o servidor está funcionando
-app.get('/', (req, res) => {
-    res.send('Chatbot está rodando!');
-});
-
-// Iniciar o servidor na porta definida
-app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+// Inicializa o WhatsApp e só depois inicia o servidor
+client.initialize().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Servidor rodando em: http://localhost:${PORT}`);
+    });
+}).catch(err => {
+    console.error('Erro ao iniciar o WhatsApp:', err);
 });
