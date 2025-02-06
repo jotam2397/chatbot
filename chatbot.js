@@ -1,7 +1,20 @@
 // Leitor de QR Code
 const qrcode = require('qrcode-terminal');
-const { Client } = require('whatsapp-web.js');
-const client = new Client();
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const express = require('express');
+const app = express();
+
+// Defina a porta para o servidor (usando variável de ambiente PORT ou 10000 como fallback)
+const PORT = process.env.PORT || 10000;
+
+// Defina a sessão para autenticação local
+const client = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: { 
+        headless: true,  // Pode alterar para false se necessário
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    }
+});
 
 // Serviço de leitura do QR Code
 client.on('qr', qr => {
@@ -12,11 +25,6 @@ client.on('qr', qr => {
 client.on('ready', () => {
     console.log('Tudo certo! WhatsApp conectado.');
 });
-
-// Inicializa o cliente
-client.initialize();
-
-const delay = ms => new Promise(res => setTimeout(res, ms));
 
 // Funil de vendas para "Tem pudim, sim!"
 client.on('message', async msg => {
@@ -59,3 +67,18 @@ client.on('message', async msg => {
     }
 });
 
+// Função de delay para simular pausa entre respostas
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
+// Iniciar cliente do WhatsApp
+client.initialize();
+
+// Rota para verificar se o servidor está funcionando
+app.get('/', (req, res) => {
+    res.send('Chatbot está rodando!');
+});
+
+// Iniciar o servidor na porta definida
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+});
