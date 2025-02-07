@@ -12,7 +12,7 @@ import { auth } from './firebaseConfig.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 10001;
+const PORT = process.env.PORT || 10000;
 
 // Configuração do Firebase usando variáveis de ambiente
 const firebaseConfig = {
