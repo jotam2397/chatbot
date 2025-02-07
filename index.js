@@ -11,6 +11,9 @@ import { auth } from './firebaseConfig.js';
 // Carregar variáveis de ambiente
 dotenv.config();
 
+// Verificar se as variáveis de ambiente estão sendo carregadas corretamente
+console.log('FIREBASE_API_KEY:', process.env.FIREBASE_API_KEY);
+
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -88,7 +91,15 @@ app.post('/auth/signup', async (req, res) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        res.send(`Usuário criado com sucesso! ID: ${user.uid}`);
+
+        // Gerar o token JWT após o cadastro
+        const token = generateToken(user.uid);
+
+        // Retornar a mensagem e o token
+        res.json({
+            message: `Usuário criado com sucesso! ID: ${user.uid}`,
+            token: token
+        });
     } catch (error) {
         res.status(500).send(`Erro ao criar usuário: ${error.message}`);
     }
@@ -103,7 +114,6 @@ app.post('/auth/login', async (req, res) => {
 
         // Gerar o token JWT
         const token = generateToken(user.uid);
-        console.log("Token gerado:", token);  // Agora o token vai aparecer no terminal
 
         // Retornar o token na resposta
         res.json({
@@ -123,7 +133,10 @@ app.get('/protected', (req, res) => {
         return res.status(403).send('Token é necessário');
     }
 
-    const decoded = verifyToken(token);
+    // Remover o prefixo 'Bearer ' caso exista
+    const tokenWithoutBearer = token.replace('Bearer ', '');
+
+    const decoded = verifyToken(tokenWithoutBearer);
 
     if (decoded) {
         res.send(`Acesso concedido! User ID: ${decoded.userId}`);
