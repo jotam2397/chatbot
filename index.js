@@ -44,7 +44,15 @@ app.use('/automations', automationsRoutes);
 
 // Função para gerar o token JWT
 const generateToken = (userId) => {
-    return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    try {
+        // Gerando o token com uma expiração de 1 dia
+        const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        console.log('Token gerado com sucesso:', token); // Verifique no terminal se o token é gerado corretamente
+        return token;
+    } catch (error) {
+        console.error('Erro ao gerar o token:', error);
+        throw new Error('Erro ao gerar o token');
+    }
 };
 
 // Função para verificar o token JWT
