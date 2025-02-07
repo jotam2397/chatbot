@@ -7,11 +7,15 @@ import jwt from 'jsonwebtoken';
 import authRoutes from './auth.js';
 import automationsRoutes from './automations.js';
 import { auth } from './firebaseConfig.js';
+import cors from 'cors'; // Importando o cors
 
 // Carregar variáveis de ambiente
 dotenv.config();
 
 // Verificar se as variáveis de ambiente estão sendo carregadas corretamente
+if (!process.env.FIREBASE_API_KEY) {
+    throw new Error('FIREBASE_API_KEY não está definida');
+}
 console.log('FIREBASE_API_KEY:', process.env.FIREBASE_API_KEY);
 
 const app = express();
@@ -40,6 +44,9 @@ const db = getFirestore();
 
 // Middleware para interpretar JSON
 app.use(express.json());
+
+// Habilitar CORS para todas as origens
+app.use(cors()); // Esta linha permite requisições de outras origens
 
 // Usar as rotas
 app.use('/auth', authRoutes);
