@@ -48,7 +48,6 @@ app.use('/automations', automationsRoutes);
 // Função para gerar o token JWT
 const generateToken = (userId) => {
     try {
-        // Gerando o token com uma expiração de 1 dia
         const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1d' });
         console.log('Token gerado com sucesso:', token); // Verifique no terminal se o token é gerado corretamente
         return token;
@@ -64,6 +63,27 @@ const verifyToken = (token) => {
         return jwt.verify(token, process.env.JWT_SECRET);
     } catch (error) {
         return null;
+    }
+};
+
+// Middleware para verificar o token
+const verifyTokenMiddleware = (req, res, next) => {
+    const token = req.headers['authorization'];
+
+    if (!token) {
+        return res.status(403).send('Token é necessário');
+    }
+
+    // Remover o prefixo 'Bearer ' caso exista
+    const tokenWithoutBearer = token.replace('Bearer ', '');
+
+    const decoded = verifyToken(tokenWithoutBearer);
+
+    if (decoded) {
+        req.user = decoded;  // Guardar as informações do usuário no objeto req
+        next();  // Continuar com a execução da rota
+    } else {
+        return res.status(403).send('Token inválido ou expirado');
     }
 };
 
@@ -125,24 +145,36 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
+// Rota para criar uma nova automação
+app.post('/automations/create', verifyTokenMiddleware, async (req, res) => {
+    const { name, flow } = req.body;
+    const userId = req.user.userId;  // Usar o userId do token
+
+    if (!name || !flow) {
+        return res.status(400).send('Faltando dados necessários');
+    }
+
+    try {
+        // Adicionando a automação à coleção "automations"
+        const docRef = await addDoc(collection(db, "automations"), {
+            userId,
+            name,
+            flow,
+            createdAt: new Date()
+        });
+
+        res.json({
+            message: `Automação criada com sucesso! ID: ${docRef.id}`,
+            automationId: docRef.id
+        });
+    } catch (error) {
+        res.status(500).send(`Erro ao criar automação: ${error.message}`);
+    }
+});
+
 // Rota protegida que requer autenticação
-app.get('/protected', (req, res) => {
-    const token = req.headers['authorization'];
-
-    if (!token) {
-        return res.status(403).send('Token é necessário');
-    }
-
-    // Remover o prefixo 'Bearer ' caso exista
-    const tokenWithoutBearer = token.replace('Bearer ', '');
-
-    const decoded = verifyToken(tokenWithoutBearer);
-
-    if (decoded) {
-        res.send(`Acesso concedido! User ID: ${decoded.userId}`);
-    } else {
-        res.status(403).send('Token inválido ou expirado');
-    }
+app.get('/protected', verifyTokenMiddleware, (req, res) => {
+    res.send(`Acesso concedido! User ID: ${req.user.userId}`);
 });
 
 // Iniciar o servidor
