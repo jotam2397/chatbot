@@ -1,6 +1,6 @@
 import express from 'express';
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs } from 'firebase/firestore';
 import dotenv from 'dotenv';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import jwt from 'jsonwebtoken';
@@ -154,6 +154,8 @@ app.post('/auth/login', async (req, res) => {
 
 // Rota para criar uma nova automação
 app.post('/automations/create', verifyTokenMiddleware, async (req, res) => {
+    console.log("Corpo da requisição recebido:", req.body);
+    
     const { name, flow } = req.body;
     const userId = req.user.userId;  // Usar o userId do token
 
@@ -176,6 +178,20 @@ app.post('/automations/create', verifyTokenMiddleware, async (req, res) => {
         });
     } catch (error) {
         res.status(500).send(`Erro ao criar automação: ${error.message}`);
+    }
+});
+
+// Rota para listar todas as automações
+app.get('/automations', verifyTokenMiddleware, async (req, res) => {
+    try {
+        const querySnapshot = await getDocs(collection(db, 'automations'));
+        const automations = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        res.json(automations);
+    } catch (error) {
+        res.status(500).send(`Erro ao listar automações: ${error.message}`);
     }
 });
 
