@@ -1,10 +1,14 @@
-// auth.js
-
-import { Router } from 'express';
+import express from 'express';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from './firebaseConfig.js'; // Importação do arquivo de configuração
+import jwt from 'jsonwebtoken';
+import { auth } from './firebaseConfig.js';
 
-const router = Router();
+const router = express.Router();
+
+// Função para gerar um token JWT
+const generateToken = (userId) => {
+    return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1d' });
+};
 
 // Rota para criar um novo usuário
 router.post('/signup', async (req, res) => {
@@ -12,23 +16,35 @@ router.post('/signup', async (req, res) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        res.send(`Usuário criado com sucesso! ID: ${user.uid}`);
+        res.json({
+            message: 'Usuário criado com sucesso!',
+            userId: user.uid
+        });
     } catch (error) {
-        res.status(500).send(`Erro ao criar usuário: ${error.message}`);
+        res.status(500).json({ error: error.message });
     }
 });
 
-// Rota para login de usuário
+// Rota para login de usuário (agora retorna o token corretamente)
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        res.send(`Usuário logado com sucesso! ID: ${user.uid}`);
+
+        // Gerar o token JWT
+        const token = generateToken(user.uid);
+        console.log("Token gerado:", token);  // Exibe o token no terminal
+
+        // Retornar o token na resposta JSON
+        res.json({
+            message: 'Usuário logado com sucesso!',
+            userId: user.uid,
+            token: token  // O token agora será enviado corretamente
+        });
     } catch (error) {
-        res.status(500).send(`Erro ao logar usuário: ${error.message}`);
+        res.status(500).json({ error: error.message });
     }
 });
 
-// Exportação padrão para o router
 export default router;
