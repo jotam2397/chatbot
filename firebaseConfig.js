@@ -3,7 +3,11 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import dotenv from 'dotenv';
 
+// Carregar variáveis de ambiente
 dotenv.config();
+
+// Teste para garantir que as variáveis de ambiente estão sendo carregadas
+console.log('API Key:', process.env.FIREBASE_API_KEY);
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
